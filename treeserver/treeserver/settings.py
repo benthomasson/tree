@@ -125,6 +125,7 @@ INSTALLED_APPS = (
     'common',
     'south',
     'leaf',
+    'simulation',
 )
 
 # A sample logging configuration. The only tangible logging
