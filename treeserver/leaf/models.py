@@ -9,6 +9,8 @@ class Robot(models.Model):
 
     uuid = UUIDField(primary_key=True)
 
+    def __str__(self):
+        return self.uuid
 
 class Configuration(models.Model):
 
