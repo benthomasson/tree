@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 
-from common.fields import UUIDField
+from common.fields import UUIDField, JSONDictField
 
 import random
 import hashlib
@@ -14,6 +14,7 @@ class Robot(models.Model):
 
     uuid = UUIDField(primary_key=True)
     authorization = models.CharField(max_length=64, default=generate_authorization, blank=True)
+    config = JSONDictField(default={})
 
     def __str__(self):
         return self.uuid
