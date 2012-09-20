@@ -13,16 +13,8 @@ def generate_authorization():
 class Robot(models.Model):
 
     uuid = UUIDField(primary_key=True)
+    alias = models.CharField(max_length=80, blank=True, default="")
     authorization = models.CharField(max_length=64, default=generate_authorization, blank=True)
-    config = JSONDictField(default={})
 
     def __str__(self):
         return self.uuid
-
-class Configuration(models.Model):
-
-    robot = models.ForeignKey(Robot)
-    config_line = models.CharField(max_length=80)
-
-
-

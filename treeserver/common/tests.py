@@ -3,7 +3,6 @@ from django.test import TestCase
 
 from common.fn import load_fn
 from common.email import sendmail, renderAndSendMail
-from common.rally import import_result
 
 from mock import patch
 

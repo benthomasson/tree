@@ -156,3 +156,4 @@ LOGGING = {
         },
     }
 }
+TASTYPIE_FULL_DEBUG = True
