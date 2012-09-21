@@ -20,8 +20,8 @@ JSON objects seamlessly"""
                 return json.loads(value)
             else:
                 return value
-        except ValueError:
-            return {}
+        except ValueError, e:
+            return value
 
     def get_db_prep_save(self, value, *args, **kwargs):
         """Convert our JSON object to a string before we save"""
