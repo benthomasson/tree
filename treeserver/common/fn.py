@@ -16,3 +16,6 @@ def load_fn(name):
     for part in parts[1:]:
         module = getattr(module, part)
     return module
+
+def class_name(a_class):
+    return "{0}.{1}".format(a_class.__module__, a_class.__name__)

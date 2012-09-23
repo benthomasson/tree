@@ -28,7 +28,7 @@ JSON objects seamlessly"""
         value = json.dumps(value)
         return super(JSONValueField, self).get_db_prep_save(value, *args, **kwargs)
 
-add_introspection_rules([], ["^common\.fields\.JSONDictField"])
+add_introspection_rules([], ["^common\.fields\.JSONValueField"])
 
 
 class JSONDictField(models.TextField):
