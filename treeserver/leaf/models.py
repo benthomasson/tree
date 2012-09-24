@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 
-from common.fields import UUIDField, JSONDictField
+from common.fields import UUIDField, JSONDictField, JSONValueField
 
 import random
 import hashlib
@@ -18,3 +18,12 @@ class Robot(models.Model):
 
     def __str__(self):
         return self.uuid
+
+class Ability(models.Model):
+
+    name = models.CharField(max_length=80)
+    function = models.CharField(max_length=255)
+
+    class Meta:
+       verbose_name_plural = "Abilities"
+

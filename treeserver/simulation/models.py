@@ -29,7 +29,7 @@ class Thing(models.Model):
         thing = cls.objects.get(uuid=uuid)
         sim_class = load_fn(thing.sim_class)
         sim = sim_class.__new__(sim_class)
-        Data.load_state(thing, sim)
+        Data.load_state(thing.uuid, sim)
         return sim
 
     @classmethod
@@ -63,7 +63,10 @@ class Data(models.Model):
     @classmethod
     def save_state(cls, uuid, o):
         t = Thing.objects.get(uuid=uuid)
-        for name, value in o.__getstate__().iteritems():
+        state = o.__getstate__()
+        if 'uuid'in state:
+            del state['uuid']
+        for name, value in state.iteritems():
             cls.set_attribute(t, name, value)
 
     @classmethod
@@ -73,5 +76,6 @@ class Data(models.Model):
         for datum in cls.objects.filter(thing=t):
             d[datum.name] = datum.value
         o.__setstate__(d)
+        o.uuid = uuid
 
 

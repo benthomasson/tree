@@ -1,7 +1,7 @@
 from tastypie.resources import ModelResource, ALL
 from tastypie.authorization import Authorization
 from tastypie import fields
-from leaf.models import Robot
+from leaf.models import Robot, Ability
 from django.contrib.auth.models import User
 
 from tastypie.authentication import BasicAuthentication
@@ -90,3 +90,13 @@ class RobotResource(XHMOMixin, ModelResource):
         authentication = BasicAuthentication(realm="")
         authorization = DjangoAuthorization()
         #authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')
+
+class AbilityResource(ModelResource):
+
+    class Meta:
+        queryset = Ability.objects.all()
+        list_allowed_methods = ['get']
+        detail_allowed_methods = []
+        excludes = ['function', 'id']
+        authentication = BasicAuthentication(realm="")
+        authorization = DjangoAuthorization()
