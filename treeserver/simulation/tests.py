@@ -62,9 +62,9 @@ class TestData(TestCase):
         sim.x = 10
         sim.z = 'hello'
         sim.ts = [1, 2, 3, 4]
-        Data.save_state(t.uuid, sim)
+        Data.save_state(t, sim)
         new_sim = TestSim(t.uuid)
-        Data.load_state(t.uuid, new_sim)
+        Data.load_state(t, new_sim)
         self.assertEquals(new_sim.x, 10)
         self.assertEquals(new_sim.z, 'hello')
         self.assertEquals(new_sim.ts, [1, 2, 3, 4])

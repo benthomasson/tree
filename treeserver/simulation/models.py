@@ -29,7 +29,7 @@ class Thing(models.Model):
         thing = cls.objects.get(uuid=uuid)
         sim_class = load_fn(thing.sim_class)
         sim = sim_class.__new__(sim_class)
-        Data.load_state(thing.uuid, sim)
+        Data.load_state(thing, sim)
         return sim
 
     @classmethod
@@ -61,21 +61,19 @@ class Data(models.Model):
             datum.save()
 
     @classmethod
-    def save_state(cls, uuid, o):
-        t = Thing.objects.get(uuid=uuid)
+    def save_state(cls, thing, o):
         state = o.__getstate__()
         if 'uuid'in state:
             del state['uuid']
         for name, value in state.iteritems():
-            cls.set_attribute(t, name, value)
+            cls.set_attribute(thing, name, value)
 
     @classmethod
-    def load_state(cls, uuid, o):
+    def load_state(cls, thing, o):
         d = dict()
-        t = Thing.objects.get(uuid=uuid)
-        for datum in cls.objects.filter(thing=t):
+        for datum in cls.objects.filter(thing=thing):
             d[datum.name] = datum.value
         o.__setstate__(d)
-        o.uuid = uuid
+        o.uuid = thing.uuid
 
 
