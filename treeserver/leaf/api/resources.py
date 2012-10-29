@@ -4,6 +4,7 @@ from tastypie import fields, http
 from tastypie.bundle import Bundle
 from leaf.models import Robot, Ability
 from simulation.simulations import Robot as Robot2
+from simulation.models import Thing
 from django.contrib.auth.models import User
 
 from tastypie.authentication import BasicAuthentication
@@ -66,6 +67,7 @@ class XHMOMixin(object):
 
         return request_method
 
+
 class ObjectAuthorization(Authorization):
 
     def __init__(self, auth_key, object_key):
@@ -73,8 +75,6 @@ class ObjectAuthorization(Authorization):
         self.object_key = object_key
 
     def apply_limits(self, request, object_list):
-        print request.META
-        print object_list
         return filter(functools.partial(self.test_auth_key, request), object_list)
 
     def test_auth_key(self, request, obj):
@@ -84,16 +84,20 @@ class ObjectAuthorization(Authorization):
             return request.META.get(self.auth_key) == getattr(obj, self.object_key)
 
     def is_authorized(self, request, obj):
+        if obj is None:
+            return True
         return self.test_auth_key(request, obj)
+
 
 class RobotResource(XHMOMixin, ModelResource):
 
     class Meta:
         queryset = Robot.objects.all()
-        allowed_methods = ['post', 'get', 'put' ]
+        allowed_methods = ['post', 'get', 'put']
         authentication = BasicAuthentication(realm="")
         authorization = Authorization()
         #authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')
+
 
 class AbilityResource(ModelResource):
 
@@ -104,6 +108,7 @@ class AbilityResource(ModelResource):
         excludes = ['function', 'id']
         authentication = BasicAuthentication(realm="")
         authorization = Authorization()
+
 
 class ThingResource(Resource):
 
@@ -122,21 +127,30 @@ class ThingResource(Resource):
         return self._meta.authorization.apply_limits(request, self._meta.object_class.all())
 
     def obj_get(self, request=None, **kwargs):
-        print request
         o = self._meta.object_class.get(uuid=kwargs['pk'])
         self.is_authorized(request, o)
         return o
 
+    def obj_create(self, bundle, request=None, **kwargs):
+        print bundle, request, kwargs
+        bundle.obj = Thing.create_sim(self._meta.object_class)
+        bundle.obj.__dict__.update(**kwargs)
+        bundle = self.full_hydrate(bundle)
+        return bundle
 
-class RobotResource2(ThingResource):
+    def obj_update(self, bundle, request=None, **kwargs):
+        return self.obj_create(bundle, request, **kwargs)
+
+
+class RobotResource2(XHMOMixin, ThingResource):
 
     uuid = fields.CharField(attribute='uuid', readonly=True, unique=True, help_text="uuid")
-    authorization = fields.CharField(attribute='authorization', readonly=True, unique=True, help_text="authorization", null=True)
+    authorization = fields.CharField(attribute='authorization', readonly=True, help_text="authorization", null=True)
+    alias = fields.CharField(attribute='alias', help_text="alias", null=True)
 
     class Meta:
         resource_name = 'robot2'
         object_class = Robot2
-        allowed_methods = ['post', 'get', 'put' ]
+        allowed_methods = ['post', 'get', 'put']
         authentication = BasicAuthentication(realm="")
-        #authorization = Authorization()
         authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')

@@ -23,7 +23,7 @@ class BaseSim(object):
     def save(self):
         return Thing.save_sim(self)
 
-    def __init__(self, uuid):
+    def __init__(self, uuid=None):
         self.uuid = uuid
 
     def __setstate__(self, d):
@@ -34,4 +34,5 @@ class BaseSim(object):
 
 class Robot(BaseSim):
 
-    pass
+    alias = ""
+
