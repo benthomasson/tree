@@ -3,14 +3,20 @@ from django.core.exceptions import ObjectDoesNotExist
 
 # Create your models here.
 
-
 from common.fields import UUIDField, JSONValueField
 from common.fn import load_fn, class_name
+
+import random
+import hashlib
+
+def generate_authorization():
+    return hashlib.sha256( str(random.getrandbits(256)) ).hexdigest()
 
 class Thing(models.Model):
 
     uuid = UUIDField(primary_key=True)
     sim_class = models.CharField(max_length=255, db_index=True)
+    authorization = models.CharField(max_length=64, default=generate_authorization, blank=True)
 
     def __str__(self):
         return self.uuid
@@ -29,6 +35,7 @@ class Thing(models.Model):
         thing = cls.objects.get(uuid=uuid)
         sim_class = load_fn(thing.sim_class)
         sim = sim_class.__new__(sim_class)
+        sim.authorization = thing.authorization
         Data.load_state(thing, sim)
         return sim
 
