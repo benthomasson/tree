@@ -132,10 +132,7 @@ class ThingResource(Resource):
         return o
 
     def obj_create(self, bundle, request=None, **kwargs):
-        print bundle, request, kwargs
         bundle.obj = Thing.create_sim(self._meta.object_class)
-        bundle.obj.__dict__.update(**kwargs)
-        bundle = self.full_hydrate(bundle)
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):
@@ -145,7 +142,7 @@ class ThingResource(Resource):
 class RobotResource2(XHMOMixin, ThingResource):
 
     uuid = fields.CharField(attribute='uuid', readonly=True, unique=True, help_text="uuid")
-    authorization = fields.CharField(attribute='authorization', readonly=True, help_text="authorization", null=True)
+    #authorization = fields.CharField(attribute='authorization', readonly=True, help_text="authorization", null=True)
     alias = fields.CharField(attribute='alias', help_text="alias", null=True)
 
     class Meta:
