@@ -25,9 +25,14 @@ class Thing(models.Model):
        verbose_name_plural = "Thingies"
 
     @classmethod
-    def create_sim(cls, sim_class):
+    def create_thing(cls, sim_class):
         thing = cls(sim_class=class_name(sim_class))
         thing.save()
+        return thing
+
+    @classmethod
+    def create_sim(cls, sim_class):
+        thing = cls.create_thing(sim_class)
         return sim_class(thing.uuid)
 
     @classmethod
@@ -42,6 +47,9 @@ class Thing(models.Model):
     @classmethod
     def save_sim(cls, sim):
         thing = cls.objects.get(uuid=sim.uuid)
+        if sim.authorization != thing.authorization:
+            thing.authorization = sim.authorization
+            thing.save()
         Data.save_state(thing, sim)
 
 class Data(models.Model):
@@ -70,8 +78,8 @@ class Data(models.Model):
     @classmethod
     def save_state(cls, thing, o):
         state = o.__getstate__()
-        if 'uuid'in state:
-            del state['uuid']
+        for var in [ 'uuid', 'authorization']:
+            del state[var]
         for name, value in state.iteritems():
             cls.set_attribute(thing, name, value)
 
@@ -82,5 +90,12 @@ class Data(models.Model):
             d[datum.name] = datum.value
         o.__setstate__(d)
         o.uuid = thing.uuid
+
+
+class Task(models.Model):
+
+    pass
+
+
 
 

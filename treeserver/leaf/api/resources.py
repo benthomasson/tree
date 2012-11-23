@@ -6,9 +6,10 @@ from leaf.models import Robot, Ability
 from simulation.simulations import Robot as Robot2
 from simulation.models import Thing
 from django.contrib.auth.models import User
+from django.http import HttpResponse
+from tastypie.exceptions import ImmediateHttpResponse
 
 from tastypie.authentication import BasicAuthentication
-from tastypie.authorization import Authorization
 import functools
 
 
@@ -133,6 +134,8 @@ class ThingResource(Resource):
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle.obj = Thing.create_sim(self._meta.object_class)
+        self.full_hydrate(bundle)
+        bundle.obj.save()
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):
@@ -142,7 +145,7 @@ class ThingResource(Resource):
 class RobotResource2(XHMOMixin, ThingResource):
 
     uuid = fields.CharField(attribute='uuid', readonly=True, unique=True, help_text="uuid")
-    #authorization = fields.CharField(attribute='authorization', readonly=True, help_text="authorization", null=True)
+    authorization = fields.CharField(attribute='authorization', readonly=False, help_text="authorization", null=True)
     alias = fields.CharField(attribute='alias', help_text="alias", null=True)
 
     class Meta:

@@ -72,3 +72,9 @@ class TestData(TestCase):
     def test_load_fn(self):
         for i in xrange(2):
             self.assertEquals(BaseSim, load_fn('simulation.simulations.BaseSim'))
+
+
+class TestTask(TestCase):
+
+    def test(self):
+        pass
