@@ -82,7 +82,10 @@ class ObjectAuthorization(Authorization):
         if not hasattr(obj, self.object_key):
             return True
         else:
-            return request.META.get(self.auth_key) == getattr(obj, self.object_key)
+            return self.get_auth_key(request) == getattr(obj, self.object_key)
+
+    def get_auth_key(self, request):
+        return request.META.get(self.auth_key)
 
     def is_authorized(self, request, obj):
         if obj is None:
@@ -125,7 +128,9 @@ class ThingResource(Resource):
         return kwargs
 
     def obj_get_list(self, request=None, **kwargs):
-        return self._meta.authorization.apply_limits(request, self._meta.object_class.all())
+        auth = self._meta.authorization
+        objects = auth.apply_limits(request, self._meta.object_class.filter(authorization=auth.get_auth_key(request)))
+        return objects
 
     def obj_get(self, request=None, **kwargs):
         o = self._meta.object_class.get(uuid=kwargs['pk'])
@@ -139,14 +144,20 @@ class ThingResource(Resource):
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):
-        return self.obj_create(bundle, request, **kwargs)
+        bundle.obj = Thing.load_sim(bundle.data['uuid'])
+        self.full_hydrate(bundle)
+        bundle.obj.save()
+        return bundle
+
+    #def dehydrate_authorization(self, bundle):
+    #    return bundle.data['authorization']
 
 
 class RobotResource2(XHMOMixin, ThingResource):
 
     uuid = fields.CharField(attribute='uuid', readonly=True, unique=True, help_text="uuid")
-    authorization = fields.CharField(attribute='authorization', readonly=False, help_text="authorization", null=True)
-    alias = fields.CharField(attribute='alias', help_text="alias", null=True)
+    authorization = fields.CharField(attribute='authorization', readonly=False, help_text="authorization", blank=True, null=True)
+    alias = fields.CharField(attribute='alias', help_text="alias", blank=True, null=True)
 
     class Meta:
         resource_name = 'robot2'

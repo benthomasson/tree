@@ -47,7 +47,7 @@ class Thing(models.Model):
     @classmethod
     def save_sim(cls, sim):
         thing = cls.objects.get(uuid=sim.uuid)
-        if sim.authorization != thing.authorization:
+        if hasattr(sim, 'authorization') and sim.authorization and sim.authorization != thing.authorization:
             thing.authorization = sim.authorization
             thing.save()
         Data.save_state(thing, sim)
@@ -79,7 +79,8 @@ class Data(models.Model):
     def save_state(cls, thing, o):
         state = o.__getstate__()
         for var in [ 'uuid', 'authorization']:
-            del state[var]
+            if var in state:
+                del state[var]
         for name, value in state.iteritems():
             cls.set_attribute(thing, name, value)
 

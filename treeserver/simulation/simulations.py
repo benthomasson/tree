@@ -14,7 +14,11 @@ class BaseSim(object):
 
     @classmethod
     def all(cls):
-        return Thing.objects.filter(sim_class=class_name(cls))
+        return map(lambda x: Thing.load_sim(uuid=x.uuid), Thing.objects.filter(sim_class=class_name(cls)))
+
+    @classmethod
+    def filter(cls,**kwargs):
+        return map(lambda x: Thing.load_sim(uuid=x.uuid), Thing.objects.filter(**kwargs))
 
     @classmethod
     def get(cls, uuid):
@@ -32,7 +36,11 @@ class BaseSim(object):
     def __getstate__(self):
         return self.__dict__.copy()
 
+    def __str__(self):
+        return "{0} {1} {2}".format(class_name(self.__class__), self.uuid, self.__dict__)
+
 class Robot(BaseSim):
 
-    alias = ""
+    pass
+
 
