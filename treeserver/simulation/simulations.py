@@ -41,6 +41,8 @@ class BaseSim(object):
 
 class Robot(BaseSim):
 
-    pass
-
+    def task_hello(self, task):
+        task.status = 'COMPLETED'
+        task.save()
+        return "Hello"
 

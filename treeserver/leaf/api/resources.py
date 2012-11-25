@@ -166,7 +166,7 @@ class RobotResource2(XHMOMixin, ThingResource):
         authentication = BasicAuthentication(realm="")
         authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')
 
-class TaskResource(XHMOMixin, Resource):
+class TaskResource(XHMOMixin, ModelResource):
 
     task = fields.CharField(attribute='id', readonly=True, unique=True, help_text="task")
     robot = fields.CharField(attribute='thing', help_text="robot")
@@ -178,10 +178,14 @@ class TaskResource(XHMOMixin, Resource):
     class Meta:
         resource_name = 'task'
         object_class = Task
+        queryset = Task.objects.all()
         allowed_methods = ['post', 'get', 'put']
         allowed_methods = ['post', 'get', 'put', 'delete']
         authentication = BasicAuthentication(realm="")
         authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')
+        filtering = {
+            'robot': ALL,
+        }
 
     def rollback(self, bundles):
         pass
@@ -194,10 +198,9 @@ class TaskResource(XHMOMixin, Resource):
             kwargs['pk'] = bundle_or_obj.task
         return kwargs
 
-    def obj_get_list(self, request=None, **kwargs):
+    def get_object_list(self, request):
         auth = self._meta.authorization
-        objects = auth.apply_limits(request, Task.objects.filter(authorization=auth.get_auth_key(request)))
-        return objects
+        return Task.objects.filter(authorization=auth.get_auth_key(request))
 
     def obj_get(self, request=None, **kwargs):
         o = Task.objects.get(id=kwargs['pk'])

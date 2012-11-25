@@ -173,6 +173,8 @@ class TestRobotResource(ResourceTestCase):
 
 class TestTaskResource(ResourceTestCase):
 
+    maxDiff = None
+
     def setUp(self):
         super(TestTaskResource, self).setUp()
 
@@ -215,13 +217,16 @@ class TestTaskResource(ResourceTestCase):
         self.assertEqual(len(data['objects']), 1)
         # Here, we're checking an entire structure for the expected data.
         self.assertEqual(data['objects'][0], {
-            'task': str(self.task.pk),
-            'authorization': self.task.authorization,
-            'name': 'foo',
-            'result': None,
-            'status': 'REQUESTED',
-            'robot': self.task.thing.uuid,
-            'resource_uri': '/leaf_api/v1/task/{0}/'.format(self.task.pk)
+            u'task': str(self.task.pk),
+            u'authorization': self.task.authorization,
+            u'kwargs': u'{}',
+            u'id': self.task.pk,
+            u'name': u'foo',
+            u'result': None,
+            u'status': u'REQUESTED',
+            u'robot': self.task.thing.uuid,
+            u'resource_uri': '/leaf_api/v1/task/{0}/'.format(self.task.pk),
+            u'task': str(self.task.pk),
         })
 
     def test_get_detail_unauthenticated(self):
@@ -238,6 +243,8 @@ class TestTaskResource(ResourceTestCase):
 
         # We use ``assertKeys`` here to just verify the keys, not all the data.
         self.assertKeys(data, [u'authorization',
+                                                 u'id',
+                                                 u'kwargs',
                                                  u'name',
                                                  u'resource_uri',
                                                  u'result',
