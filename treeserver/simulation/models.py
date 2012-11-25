@@ -9,8 +9,10 @@ from common.fn import load_fn, class_name
 import random
 import hashlib
 
+
 def generate_authorization():
-    return hashlib.sha256( str(random.getrandbits(256)) ).hexdigest()
+    return hashlib.sha256(str(random.getrandbits(256))).hexdigest()
+
 
 class Thing(models.Model):
 
@@ -22,7 +24,7 @@ class Thing(models.Model):
         return self.uuid
 
     class Meta:
-       verbose_name_plural = "Thingies"
+        verbose_name_plural = "Thingies"
 
     @classmethod
     def create_thing(cls, sim_class):
@@ -38,10 +40,13 @@ class Thing(models.Model):
     @classmethod
     def load_sim(cls, uuid):
         thing = cls.objects.get(uuid=uuid)
-        sim_class = load_fn(thing.sim_class)
+        return thing.load_my_sim()
+
+    def load_my_sim(self):
+        sim_class = load_fn(self.sim_class)
         sim = sim_class.__new__(sim_class)
-        sim.authorization = thing.authorization
-        Data.load_state(thing, sim)
+        sim.authorization = self.authorization
+        Data.load_state(self, sim)
         return sim
 
     @classmethod
@@ -52,6 +57,7 @@ class Thing(models.Model):
             thing.save()
         Data.save_state(thing, sim)
 
+
 class Data(models.Model):
 
     thing = models.ForeignKey(Thing, db_index=True)
@@ -59,26 +65,26 @@ class Data(models.Model):
     value = JSONValueField()
 
     class Meta:
-       verbose_name_plural = "Data"
+        verbose_name_plural = "Data"
 
     @classmethod
     def get_attribute(cls, thing, name):
-        return cls.objects.get(thing=thing,name=name).value
+        return cls.objects.get(thing=thing, name=name).value
 
     @classmethod
     def set_attribute(cls, thing, name, value):
         try:
-            datum = cls.objects.get(thing=thing,name=name)
+            datum = cls.objects.get(thing=thing, name=name)
             datum.value = value
             datum.save()
         except ObjectDoesNotExist:
-            datum = cls(thing=thing,name=name,value=value)
+            datum = cls(thing=thing, name=name, value=value)
             datum.save()
 
     @classmethod
     def save_state(cls, thing, o):
         state = o.__getstate__()
-        for var in [ 'uuid', 'authorization']:
+        for var in ['uuid', 'authorization']:
             if var in state:
                 del state[var]
         for name, value in state.iteritems():
@@ -95,8 +101,17 @@ class Data(models.Model):
 
 class Task(models.Model):
 
-    pass
+    thing = models.ForeignKey(Thing, db_index=True)
+    name = models.CharField(max_length=255)
+    kwargs = JSONValueField(default=dict())
+    authorization = models.CharField(max_length=64, default=generate_authorization, blank=True)
+    status = models.CharField(max_length=20, default='REQUESTED')
+    result = JSONValueField(default=None)
 
-
-
-
+    def call_sim_method(self):
+        sim = self.thing.load_my_sim()
+        method_name = 'task_{0}'.format(self.name)
+        assert hasattr(sim, method_name)
+        fn = getattr(sim, method_name)
+        self.result = fn(task=self, **self.kwargs)
+        self.save()

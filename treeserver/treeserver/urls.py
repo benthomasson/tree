@@ -5,12 +5,13 @@ from django.contrib import admin
 admin.autodiscover()
 
 from tastypie.api import Api
-from leaf.api.resources import RobotResource, AbilityResource, RobotResource2
+from leaf.api.resources import RobotResource, AbilityResource, RobotResource2, TaskResource
 
 leaf_v1_api = Api(api_name='v1')
 leaf_v1_api.register(RobotResource())
 leaf_v1_api.register(AbilityResource())
 leaf_v1_api.register(RobotResource2())
+leaf_v1_api.register(TaskResource())
 
 urlpatterns = patterns('',
     # Examples:

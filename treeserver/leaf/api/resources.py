@@ -4,7 +4,7 @@ from tastypie import fields, http
 from tastypie.bundle import Bundle
 from leaf.models import Robot, Ability
 from simulation.simulations import Robot as Robot2
-from simulation.models import Thing
+from simulation.models import Thing, Task
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from tastypie.exceptions import ImmediateHttpResponse
@@ -165,3 +165,57 @@ class RobotResource2(XHMOMixin, ThingResource):
         allowed_methods = ['post', 'get', 'put']
         authentication = BasicAuthentication(realm="")
         authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')
+
+class TaskResource(XHMOMixin, Resource):
+
+    task = fields.CharField(attribute='uuid', readonly=True, unique=True, help_text="uuid")
+    uuid = fields.CharField(attribute='uuid', help_text="uuid")
+    name = fields.CharField(attribute='name', help_text="name")
+    authorization = fields.CharField(attribute='authorization', readonly=False, help_text="authorization", blank=True, null=True)
+    status = fields.CharField(attribute='status', help_text="status", readonly=True)
+    result = fields.CharField(attribute='result', help_text="result", readonly=True)
+
+    class Meta:
+        resource_name = 'task'
+        allowed_methods = ['post', 'get', 'put']
+        authentication = BasicAuthentication(realm="")
+        authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')
+
+    def rollback(self, bundles):
+        pass
+
+    def detail_uri_kwargs(self, bundle_or_obj):
+        print 'detail_uri_kwargs'
+        print bundle_or_obj
+        kwargs = {}
+        if isinstance(bundle_or_obj, Bundle):
+            kwargs['pk'] = bundle_or_obj.obj.pk
+        else:
+            kwargs['pk'] = bundle_or_obj.task
+        return kwargs
+
+    def obj_get_list(self, request=None, **kwargs):
+        auth = self._meta.authorization
+        objects = auth.apply_limits(request, Task.filter(authorization=auth.get_auth_key(request)))
+        return objects
+
+    def obj_get(self, request=None, **kwargs):
+        print 'obj_get'
+        print request
+        print kwargs
+        o = Task.objects.get(id=kwargs['pk'])
+        self.is_authorized(request, o)
+        print o
+        return o
+
+    def obj_create(self, bundle, request=None, **kwargs):
+        bundle.obj = Task()
+        self.full_hydrate(bundle)
+        bundle.obj.save()
+        return bundle
+
+    def obj_update(self, bundle, request=None, **kwargs):
+        o = Task.objects.get(pk=kwargs['pk'])
+        self.full_hydrate(bundle)
+        bundle.obj.save()
+        return bundle
