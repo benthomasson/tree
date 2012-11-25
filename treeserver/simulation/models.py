@@ -115,3 +115,6 @@ class Task(models.Model):
         fn = getattr(sim, method_name)
         self.result = fn(task=self, **self.kwargs)
         self.save()
+
+    def __str__(self):
+        return "{1}.{2} #{0}".format(self.id, self.thing.uuid, self.name)

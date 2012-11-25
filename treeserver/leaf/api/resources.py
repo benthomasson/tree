@@ -168,16 +168,18 @@ class RobotResource2(XHMOMixin, ThingResource):
 
 class TaskResource(XHMOMixin, Resource):
 
-    task = fields.CharField(attribute='uuid', readonly=True, unique=True, help_text="uuid")
-    uuid = fields.CharField(attribute='uuid', help_text="uuid")
+    task = fields.CharField(attribute='id', readonly=True, unique=True, help_text="task")
+    robot = fields.CharField(attribute='thing', help_text="robot")
     name = fields.CharField(attribute='name', help_text="name")
     authorization = fields.CharField(attribute='authorization', readonly=False, help_text="authorization", blank=True, null=True)
     status = fields.CharField(attribute='status', help_text="status", readonly=True)
-    result = fields.CharField(attribute='result', help_text="result", readonly=True)
+    result = fields.CharField(attribute='result', help_text="result", readonly=True, null=True)
 
     class Meta:
         resource_name = 'task'
+        object_class = Task
         allowed_methods = ['post', 'get', 'put']
+        allowed_methods = ['post', 'get', 'put', 'delete']
         authentication = BasicAuthentication(realm="")
         authorization = ObjectAuthorization('HTTP_AUTHORIZATION_KEY', 'authorization')
 
@@ -185,8 +187,6 @@ class TaskResource(XHMOMixin, Resource):
         pass
 
     def detail_uri_kwargs(self, bundle_or_obj):
-        print 'detail_uri_kwargs'
-        print bundle_or_obj
         kwargs = {}
         if isinstance(bundle_or_obj, Bundle):
             kwargs['pk'] = bundle_or_obj.obj.pk
@@ -196,26 +196,31 @@ class TaskResource(XHMOMixin, Resource):
 
     def obj_get_list(self, request=None, **kwargs):
         auth = self._meta.authorization
-        objects = auth.apply_limits(request, Task.filter(authorization=auth.get_auth_key(request)))
+        objects = auth.apply_limits(request, Task.objects.filter(authorization=auth.get_auth_key(request)))
         return objects
 
     def obj_get(self, request=None, **kwargs):
-        print 'obj_get'
-        print request
-        print kwargs
         o = Task.objects.get(id=kwargs['pk'])
         self.is_authorized(request, o)
-        print o
         return o
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle.obj = Task()
         self.full_hydrate(bundle)
+        self.is_authorized(request, bundle.obj)
+        self.is_authorized(request, bundle.data['robot'])
         bundle.obj.save()
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):
         o = Task.objects.get(pk=kwargs['pk'])
+        self.is_authorized(request, o)
         self.full_hydrate(bundle)
         bundle.obj.save()
+        return bundle
+
+    def hydrate_robot(self, bundle):
+        robot = Thing.objects.get(pk=bundle.data['robot'])
+        bundle.data['robot'] = robot
+        bundle.data['authorization'] = robot.authorization
         return bundle

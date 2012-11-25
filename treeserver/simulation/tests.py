@@ -16,8 +16,6 @@ from common.fn import load_fn, class_name
 from tastypie.test import ResourceTestCase
 
 
-
-
 class TestThing(TestCase):
 
     def test(self):
@@ -119,7 +117,6 @@ class TestTask(TestCase):
         self.assertEquals(task3.status, 'COMPLETED')
 
 
-
 class TestRobotResource(ResourceTestCase):
 
     def setUp(self):
@@ -146,6 +143,8 @@ class TestRobotResource(ResourceTestCase):
             'created': '2012-05-01T22:05:12'
         }
 
+        self.args = dict(format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.thing.authorization)
+
     def get_credentials(self):
         return self.create_basic(username=self.username, password=self.password)
 
@@ -159,7 +158,7 @@ class TestRobotResource(ResourceTestCase):
         self.assertHttpUnauthorized(self.api_client.get(self.detail_url, format='json', authentication=self.get_credentials()))
 
     def test_get_detail_json(self):
-        resp = self.api_client.get(self.detail_url, format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.thing.authorization)
+        resp = self.api_client.get(self.detail_url, **self.args)
         self.assertValidJSONResponse(resp)
 
         # We use ``assertKeys`` here to just verify the keys, not all the data.
@@ -181,9 +180,9 @@ class TestTaskResource(ResourceTestCase):
         self.password = 'pass'
         self.user = User.objects.create_user(self.username, 'test@example.com', self.password)
 
-        t = Thing.create_thing(sim_class=TestSim2)
-        t.save()
-        self.task = Task(thing=t, name='foo')
+        self.robot = Thing.create_thing(sim_class=TestSim2)
+        self.robot.save()
+        self.task = Task(thing=self.robot, name='foo')
         self.task.save()
 
         # We also build a detail URI, since we will be using it all over.
@@ -193,11 +192,11 @@ class TestTaskResource(ResourceTestCase):
         # The data we'll send on POST requests. Again, because we'll use it
         # frequently (enough).
         self.post_data = {
-            'user': '/api/v1/user/{0}/'.format(self.user.pk),
-            'title': 'Second Post!',
-            'slug': 'second-post',
-            'created': '2012-05-01T22:05:12'
+            'robot': self.robot.uuid,
+            'name': 'foo',
         }
+
+        self.args = dict(format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization)
 
     def get_credentials(self):
         return self.create_basic(username=self.username, password=self.password)
@@ -205,65 +204,74 @@ class TestTaskResource(ResourceTestCase):
     def test_get_list_unauthorzied(self):
         self.assertHttpUnauthorized(self.api_client.get('/leaf_api/v1/task/', format='json'))
 
-    @skip('')
     def test_get_list_json(self):
-        resp = self.api_client.get('/api/v1/entries/', format='json', authentication=self.get_credentials())
+        resp = self.api_client.get('/leaf_api/v1/task/', format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization)
         self.assertValidJSONResponse(resp)
 
         # Scope out the data for correctness.
-        self.assertEqual(len(self.deserialize(resp)['objects']), 12)
+        data = self.deserialize(resp)
+        self.assertEqual(len(data['objects']), 1)
         # Here, we're checking an entire structure for the expected data.
-        self.assertEqual(self.deserialize(resp)['objects'][0], {
-            'pk': str(self.entry_1.pk),
-            'user': '/api/v1/user/{0}/'.format(self.user.pk),
-            'title': 'First post',
-            'slug': 'first-post',
-            'created': '2012-05-01T19:13:42',
-            'resource_uri': '/api/v1/entry/{0}/'.format(self.entry_1.pk)
+        self.assertEqual(data['objects'][0], {
+            'task': str(self.task.pk),
+            'authorization': self.task.authorization,
+            'name': 'foo',
+            'result': None,
+            'status': 'REQUESTED',
+            'robot': self.task.thing.uuid,
+            'resource_uri': '/leaf_api/v1/task/{0}/'.format(self.task.pk)
         })
-
-    @skip('')
-    def test_get_list_xml(self):
-        self.assertValidXMLResponse(self.api_client.get('/api/v1/entries/', format='xml', authentication=self.get_credentials()))
 
     def test_get_detail_unauthenticated(self):
         self.assertHttpUnauthorized(self.api_client.get(self.detail_url, format='json'))
 
-    def test_get_detail_no_auth_key(self):
+    def test_get_detail_unauthorized(self):
         self.assertHttpUnauthorized(self.api_client.get(self.detail_url, format='json', authentication=self.get_credentials()))
 
     def test_get_detail_json(self):
-        resp = self.api_client.get(self.detail_url, format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization)
+        resp = self.api_client.get(self.detail_url, **self.args)
         self.assertValidJSONResponse(resp)
 
         # We use ``assertKeys`` here to just verify the keys, not all the data.
-        self.assertKeys(self.deserialize(resp), ['created', 'slug', 'title', 'user'])
-        self.assertEqual(self.deserialize(resp)['name'], 'First post')
+        self.assertKeys(self.deserialize(resp), [u'authorization',
+                                                 u'name',
+                                                 u'resource_uri',
+                                                 u'result',
+                                                 u'status',
+                                                 u'task',
+                                                 u'robot'])
+        self.assertEqual(self.deserialize(resp)['name'], 'foo')
+        self.assertEqual(self.deserialize(resp)['authorization'], self.task.authorization)
+        self.assertEqual(self.deserialize(resp)['resource_uri'], self.detail_url)
+        self.assertEqual(self.deserialize(resp)['result'], None)
+        self.assertEqual(self.deserialize(resp)['status'], u'REQUESTED')
+        self.assertEqual(self.deserialize(resp)['robot'], self.task.thing.uuid)
 
-    @skip('')
-    def test_get_detail_xml(self):
-        self.assertValidXMLResponse(self.api_client.get(self.detail_url, format='xml', authentication=self.get_credentials()))
-
-    @skip('')
     def test_post_list_unauthenticated(self):
-        self.assertHttpUnauthorized(self.api_client.post('/api/v1/entries/', format='json', data=self.post_data))
+        self.assertHttpUnauthorized(self.api_client.post('/leaf_api/v1/task/', format='json', data=self.post_data))
 
-    @skip('')
+    def test_post_list_unauthorized(self):
+        self.assertHttpUnauthorized(self.api_client.post('/leaf_api/v1/task/', format='json', data=self.post_data, authentication=self.get_credentials()))
+
     def test_post_list(self):
         # Check how many are there first.
-        self.assertEqual(Task.objects.count(), 5)
-        self.assertHttpCreated(self.api_client.post('/api/v1/entries/', format='json', data=self.post_data, authentication=self.get_credentials()))
+        self.assertEqual(Task.objects.count(), 1)
+        resp = self.api_client.post('/leaf_api/v1/task/', format='json', data=self.post_data, authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.robot.authorization)
+        self.assertHttpCreated(resp)
         # Verify a new one has been added.
-        self.assertEqual(Task.objects.count(), 6)
+        self.assertEqual(Task.objects.count(), 2)
 
-    @skip('')
     def test_put_detail_unauthenticated(self):
         self.assertHttpUnauthorized(self.api_client.put(self.detail_url, format='json', data={}))
+
+    def test_put_detail_unauthorized(self):
+        self.assertHttpUnauthorized(self.api_client.put(self.detail_url, format='json', data={}, authentication=self.get_credentials()))
 
     @skip('')
     def test_put_detail(self):
         # Grab the current data & modify it slightly.
         original_data = self.deserialize(self.api_client.get(self.detail_url, format='json', authentication=self.get_credentials()))
+        return
         new_data = original_data.copy()
         new_data['title'] = 'Updated: First Post'
         new_data['created'] = '2012-05-01T20:06:12'
@@ -277,12 +285,11 @@ class TestTaskResource(ResourceTestCase):
         self.assertEqual(Task.objects.get(pk=25).slug, 'first-post')
         self.assertEqual(Task.objects.get(pk=25).created, datetime.datetime(2012, 3, 1, 13, 6, 12))
 
-    @skip('')
     def test_delete_detail_unauthenticated(self):
         self.assertHttpUnauthorized(self.api_client.delete(self.detail_url, format='json'))
 
     @skip('')
     def test_delete_detail(self):
-        self.assertEqual(Task.objects.count(), 5)
-        self.assertHttpAccepted(self.api_client.delete(self.detail_url, format='json', authentication=self.get_credentials()))
-        self.assertEqual(Task.objects.count(), 4)
+        self.assertEqual(Task.objects.count(), 1)
+        self.assertHttpAccepted(self.api_client.delete(self.detail_url, format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization))
+        self.assertEqual(Task.objects.count(), 0)
