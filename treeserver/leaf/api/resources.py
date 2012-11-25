@@ -210,6 +210,7 @@ class TaskResource(XHMOMixin, Resource):
         self.is_authorized(request, bundle.obj)
         self.is_authorized(request, bundle.data['robot'])
         bundle.obj.save()
+        bundle.obj.call_sim_method()
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):

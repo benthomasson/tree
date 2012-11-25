@@ -14,6 +14,7 @@ from simulation.simulations import BaseSim
 from common.fn import load_fn, class_name
 
 from tastypie.test import ResourceTestCase
+from urlparse import urlparse
 
 
 class TestThing(TestCase):
@@ -196,7 +197,8 @@ class TestTaskResource(ResourceTestCase):
             'name': 'foo',
         }
 
-        self.args = dict(format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization)
+        self.task_args = dict(format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization)
+        self.robot_args = dict(format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.robot.authorization)
 
     def get_credentials(self):
         return self.create_basic(username=self.username, password=self.password)
@@ -205,7 +207,7 @@ class TestTaskResource(ResourceTestCase):
         self.assertHttpUnauthorized(self.api_client.get('/leaf_api/v1/task/', format='json'))
 
     def test_get_list_json(self):
-        resp = self.api_client.get('/leaf_api/v1/task/', format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization)
+        resp = self.api_client.get('/leaf_api/v1/task/', **self.task_args)
         self.assertValidJSONResponse(resp)
 
         # Scope out the data for correctness.
@@ -229,23 +231,25 @@ class TestTaskResource(ResourceTestCase):
         self.assertHttpUnauthorized(self.api_client.get(self.detail_url, format='json', authentication=self.get_credentials()))
 
     def test_get_detail_json(self):
-        resp = self.api_client.get(self.detail_url, **self.args)
+        resp = self.api_client.get(self.detail_url, **self.task_args)
         self.assertValidJSONResponse(resp)
 
+        data = self.deserialize(resp)
+
         # We use ``assertKeys`` here to just verify the keys, not all the data.
-        self.assertKeys(self.deserialize(resp), [u'authorization',
+        self.assertKeys(data, [u'authorization',
                                                  u'name',
                                                  u'resource_uri',
                                                  u'result',
                                                  u'status',
                                                  u'task',
                                                  u'robot'])
-        self.assertEqual(self.deserialize(resp)['name'], 'foo')
-        self.assertEqual(self.deserialize(resp)['authorization'], self.task.authorization)
-        self.assertEqual(self.deserialize(resp)['resource_uri'], self.detail_url)
-        self.assertEqual(self.deserialize(resp)['result'], None)
-        self.assertEqual(self.deserialize(resp)['status'], u'REQUESTED')
-        self.assertEqual(self.deserialize(resp)['robot'], self.task.thing.uuid)
+        self.assertEqual(data['name'], 'foo')
+        self.assertEqual(data['authorization'], self.task.authorization)
+        self.assertEqual(data['resource_uri'], self.detail_url)
+        self.assertEqual(data['result'], None)
+        self.assertEqual(data['status'], u'REQUESTED')
+        self.assertEqual(data['robot'], self.task.thing.uuid)
 
     def test_post_list_unauthenticated(self):
         self.assertHttpUnauthorized(self.api_client.post('/leaf_api/v1/task/', format='json', data=self.post_data))
@@ -256,10 +260,21 @@ class TestTaskResource(ResourceTestCase):
     def test_post_list(self):
         # Check how many are there first.
         self.assertEqual(Task.objects.count(), 1)
-        resp = self.api_client.post('/leaf_api/v1/task/', format='json', data=self.post_data, authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.robot.authorization)
+        resp = self.api_client.post('/leaf_api/v1/task/', data=self.post_data, **self.robot_args)
+        new_task = Task.objects.all()[1]
+        url = urlparse(resp._headers['location'][1]).path
         self.assertHttpCreated(resp)
         # Verify a new one has been added.
         self.assertEqual(Task.objects.count(), 2)
+        resp = self.api_client.get(url, **self.robot_args)
+        self.assertValidJSONResponse(resp)
+        data = self.deserialize(resp)
+        self.assertEqual(data['name'], 'foo')
+        self.assertEqual(data['authorization'], self.robot.authorization)
+        self.assertEqual(data['resource_uri'], '/leaf_api/v1/task/{0}/'.format(new_task.id))
+        self.assertEqual(data['result'], 'foo')
+        self.assertEqual(data['status'], u'COMPLETED')
+        self.assertEqual(data['robot'], self.task.thing.uuid)
 
     def test_put_detail_unauthenticated(self):
         self.assertHttpUnauthorized(self.api_client.put(self.detail_url, format='json', data={}))
@@ -291,5 +306,5 @@ class TestTaskResource(ResourceTestCase):
     @skip('')
     def test_delete_detail(self):
         self.assertEqual(Task.objects.count(), 1)
-        self.assertHttpAccepted(self.api_client.delete(self.detail_url, format='json', authentication=self.get_credentials(), HTTP_AUTHORIZATION_KEY=self.task.authorization))
+        self.assertHttpAccepted(self.api_client.delete(self.detail_url, **self.task_args))
         self.assertEqual(Task.objects.count(), 0)
