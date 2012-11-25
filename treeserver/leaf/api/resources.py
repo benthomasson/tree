@@ -187,17 +187,6 @@ class TaskResource(XHMOMixin, ModelResource):
             'robot': ALL,
         }
 
-    def rollback(self, bundles):
-        pass
-
-    def detail_uri_kwargs(self, bundle_or_obj):
-        kwargs = {}
-        if isinstance(bundle_or_obj, Bundle):
-            kwargs['pk'] = bundle_or_obj.obj.pk
-        else:
-            kwargs['pk'] = bundle_or_obj.task
-        return kwargs
-
     def get_object_list(self, request):
         auth = self._meta.authorization
         return Task.objects.filter(authorization=auth.get_auth_key(request))
