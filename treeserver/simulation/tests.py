@@ -15,6 +15,7 @@ from common.fn import load_fn, class_name
 
 from tastypie.test import ResourceTestCase
 from urlparse import urlparse
+from simulation.tasks import call_sim_method, call_sim_task_method
 
 
 class TestThing(TestCase):
@@ -315,3 +316,35 @@ class TestTaskResource(ResourceTestCase):
         self.assertEqual(Task.objects.count(), 1)
         self.assertHttpAccepted(self.api_client.delete(self.detail_url, **self.task_args))
         self.assertEqual(Task.objects.count(), 0)
+
+
+class HelloRobot(BaseSim):
+
+    def sim_hello(self):
+        return "Hello"
+
+    def sim_task_hello(self, task):
+        task.status = 'COMPLETED'
+        task.save()
+        return "Hello"
+
+
+class TestCallSimMethod(TestCase):
+
+    def test_call(self):
+        sim = Thing.create_sim(HelloRobot)
+        self.assertEquals(sim.sim_hello(), 'Hello')
+
+    def test_sim_call(self):
+        sim = Thing.create_sim(HelloRobot)
+        self.assertEquals(call_sim_method(sim.uuid, 'sim_hello'), 'Hello')
+
+    def test_sim_task_call(self):
+        sim = Thing.create_sim(HelloRobot)
+        task = Task(thing=Thing.objects.get(uuid=sim.uuid), name='hello')
+        task.save()
+        task2 = Task.objects.get(id=task.id)
+        self.assertEquals(task2.status, 'REQUESTED')
+        self.assertEquals(call_sim_task_method(sim.uuid, task.id, 'sim_task_hello'), 'Hello')
+        task2 = Task.objects.get(id=task.id)
+        self.assertEquals(task2.status, 'COMPLETED')

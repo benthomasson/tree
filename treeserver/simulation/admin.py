@@ -19,7 +19,8 @@ admin.site.register(Data, DataAdmin)
 
 
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('thing',
+    list_display = ('id',
+                    'thing',
                     'name',
                     'status',
                     'result')
