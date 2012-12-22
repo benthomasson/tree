@@ -1,0 +1,2 @@
+./manage.py runfcgi daemonize=false socket=/tmp/mysite.sock maxrequests=1
+

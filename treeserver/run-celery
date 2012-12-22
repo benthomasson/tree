@@ -1,0 +1,3 @@
+#!/bin/bash
+./manage.py celeryd -l info -E -B --scheduler=djcelery.schedulers.DatabaseScheduler --pidfile=celery.pid --autoreload 
+

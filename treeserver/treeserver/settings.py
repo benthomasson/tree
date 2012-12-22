@@ -169,3 +169,7 @@ LOGGING = {
     }
 }
 TASTYPIE_FULL_DEBUG = True
+import djcelery
+djcelery.setup_loader()
+CELERYBEAT_SCHEDULER='djcelery.schedulers.DatabaseScheduler'
+BROKER_URL = 'amqp://ben:gKVYUffz@localhost:5672/myvhost'

@@ -4,6 +4,11 @@ import celery
 from simulation.models import Thing, Task
 
 @celery.task
+def hello():
+    print 'hello'
+    return 'hello'
+
+@celery.task
 def call_sim_method(thing_id, method_name, *args, **kwargs):
     sim = Thing.load_sim(thing_id)
     assert hasattr(sim, method_name)
