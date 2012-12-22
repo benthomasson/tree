@@ -26,8 +26,8 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
             'NAME': 'treeserver',
-            'USER': 'ben',
-            'PASSWORD': '',
+            'USER': 'postgres',
+            'PASSWORD': 'chariot sunny kenspeck Ovidae',
             'HOST': 'localhost',
             'PORT': '5432',
         }
